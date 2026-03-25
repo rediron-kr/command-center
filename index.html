@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chul's Daily Command Center</title>
+<style>
+:root {
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --radius: 12px;
+  --gap: 12px;
+  --transition: 0.2s ease;
+}
+[data-theme="dark"] {
+  --bg: #0f1117; --card: #1a1d27; --card-hover: #22263a;
+  --header-bg: linear-gradient(135deg, #1e2030, #161825);
+  --input-bg: #252836; --border: #2a2d3e;
+  --text: #e4e6f0; --text2: #8b8fa7; --text3: #5c6077;
+  --accent: #6c8cff; --blue: #5b8def; --green: #4ecb71;
+  --orange: #f0a050; --red: #ef5b5b; --purple: #a78bfa;
+  --yellow: #f0d050;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+[data-theme="light"] {
+  --bg: #f0f2f5; --card: #fff; --card-hover: #f8f9fb;
+  --header-bg: linear-gradient(135deg, #1a1d2e, #252840);
+  --input-bg: #f0f2f5; --border: #e2e5ea;
+  --text: #1a1d2e; --text2: #6b7080; --text3: #9ca0b0;
+  --accent: #4f6ff0; --blue: #3b6de0; --green: #2da050;
+  --orange: #d08030; --red: #d04040; --purple: #7c5ccf;
+  --yellow: #c0a030;
+  --shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  line-height: 1.5; min-height: 100vh; -webkit-tap-highlight-color: transparent;
+}
+.dash { max-width: 900px; margin: 0 auto; padding: var(--gap); }
+
+/* Header */
+.header {
+  background: var(--header-bg); border-radius: var(--radius);
+  padding: 16px; margin-bottom: var(--gap);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px; color: #e4e6f0;
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.sync-pill {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  background: rgba(255,255,255,0.1);
+}
+.sync-pill.synced { color: var(--green); }
+.theme-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.2);
+  color: #e4e6f0; width: 36px; height: 36px; border-radius: 50%;
+  cursor: pointer; font-size: 16px; min-height: 44px; min-width: 44px;
+}
+
+/* Cards */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: var(--gap);
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 14px; font-weight: 600; margin-bottom: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  user-select: none;
+}
+.card-title .collapse-toggle {
+  cursor: pointer; font-size: 12px; color: var(--text2);
+  padding: 4px 8px; border-radius: 6px; min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition);
+}
+.card-title .collapse-toggle:hover { background: var(--card-hover); }
+.collapsible-content { overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; }
+.collapsible-content.collapsed { max-height: 0 !important; opacity: 0; padding: 0; margin: 0; overflow: hidden; }
+
+/* KPIs */
+.kpi-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; margin-bottom: var(--gap);
+}
+.kpi {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; text-align: center;
+}
+.kpi-val { font-size: 24px; font-weight: 700; }
+.kpi-label { font-size: 11px; color: var(--text2); }
+
+/* Pulsing glow for high priority KPI */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(239,91,91,0.3); }
+  50% { box-shadow: 0 0 12px rgba(239,91,91,0.6); }
+}
+.kpi.pulse-red { animation: pulseGlow 2s ease-in-out infinite; }
+
+/* Meetings */
+.meeting {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; border-bottom: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 4px; border-left: 3px solid transparent;
+}
+.meeting:last-child { border-bottom: none; }
+.meeting.type-work { border-left-color: var(--blue); background: rgba(91,141,239,0.05); }
+.meeting.type-personal { border-left-color: var(--green); background: rgba(78,203,113,0.05); }
+.meeting.type-reminder { border-left-color: var(--orange); background: rgba(240,160,80,0.05); }
+.meeting-time { font-size: 13px; font-weight: 600; min-width: 50px; color: var(--accent); }
+.meeting-title { font-size: 13px; flex: 1; }
+.meeting-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+.badge-work { background: rgba(91,141,239,0.15); color: var(--blue); }
+.badge-personal { background: rgba(78,203,113,0.15); color: var(--green); }
+.badge-reminder { background: rgba(240,160,80,0.15); color: var(--orange); }
+
+/* Filters */
+.filters { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-btn {
+  padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);
+  background: none; color: var(--text2); font-size: 12px; cursor: pointer;
+  min-height: 44px; transition: all var(--transition);
+}
+.filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Priority badges */
+.priority-pill {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  font-weight: 600; text-transform: uppercase; flex-shrink: 0;
+  line-height: 1.4;
+}
+.priority-pill.pill-high { background: rgba(239,91,91,0.2); color: var(--red); }
+.priority-pill.pill-medium { background: rgba(240,160,80,0.2); color: var(--orange); }
+.priority-pill.pill-low { background: rgba(78,203,113,0.2); color: var(--green); }
+
+/* Tasks */
+.task {
+  background: var(--card-hover); border-radius: 10px;
+  padding: 12px; margin-bottom: 8px; border-left: 3px solid var(--blue);
+}
+.task.priority-high { border-left-color: var(--red); }
+.task.priority-medium { border-left-color: var(--orange); }
+.task.priority-low { border-left-color: var(--green); }
+.task.status-done { opacity: 0.5; }
+.task.status-archived { opacity: 0.3; }
+.task-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.task-check {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+  background: none; cursor: pointer; font-size: 12px; color: var(--text);
+  flex-shrink: 0; min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+.task-check.done { background: var(--green); border-color: var(--green); color: #fff; }
+.task-check.in-progress { background: var(--orange); border-color: var(--orange); color: #fff; }
+.task-desc { font-size: 13px; flex: 1; cursor: text; }
+.task-desc.done-text { text-decoration: line-through; color: var(--text3); }
+.task-meta { font-size: 11px; color: var(--text3); margin-left: 52px; }
+.task-notes {
+  font-size: 12px; color: var(--text2); margin: 6px 0 6px 52px;
+  background: var(--input-bg); border-radius: 6px; padding: 6px 8px;
+  min-height: 28px; cursor: text;
+}
+.task-notes:empty::before { content: 'Add notes...'; color: var(--text3); }
+.task-actions { display: flex; gap: 4px; margin: 6px 0 0 52px; flex-wrap: wrap; }
+.status-btn {
+  padding: 4px 10px; border-radius: 14px; border: 1px solid var(--border);
+  background: none; color: var(--text2); font-size: 11px; cursor: pointer;
+  min-height: 36px;
+}
+.status-btn.active-todo { background: rgba(91,141,239,0.2); color: var(--blue); border-color: var(--blue); }
+.status-btn.active-progress { background: rgba(240,160,80,0.2); color: var(--orange); border-color: var(--orange); }
+.status-btn.active-done { background: rgba(78,203,113,0.2); color: var(--green); border-color: var(--green); }
+.archive-btn {
+  padding: 4px 10px; border-radius: 14px; border: 1px solid var(--border);
+  background: none; color: var(--text3); font-size: 11px; cursor: pointer;
+  min-height: 36px;
+}
+
+/* Add form */
+.add-form {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.add-form input, .add-form select, .add-form textarea {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; color: var(--text);
+  font-size: 13px; font-family: var(--font); min-height: 44px;
+}
+.add-form textarea { min-height: 60px; resize: vertical; }
+.add-row { display: flex; gap: 6px; }
+.add-row > * { flex: 1; }
+.btn-add {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 10px; font-size: 13px; cursor: pointer; font-weight: 600;
+  min-height: 44px;
+}
+
+/* Pipeline */
+.pipeline-kpis { display: flex; gap: 8px; margin-bottom: 12px; }
+.pipeline-kpi {
+  flex: 1; text-align: center; background: var(--input-bg);
+  border-radius: 8px; padding: 8px;
+}
+.pipeline-kpi .val { font-size: 18px; font-weight: 700; }
+.pipeline-kpi .lbl { font-size: 10px; color: var(--text2); }
+.opp {
+  background: var(--card-hover); border-radius: 10px;
+  padding: 12px; margin-bottom: 8px;
+}
+.opp-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.opp-name { font-size: 14px; font-weight: 600; cursor: text; flex: 1; }
+.opp-value {
+  font-size: 13px; font-weight: 600; color: var(--green);
+  cursor: text; min-width: 60px; text-align: right;
+}
+.opp-status { margin-bottom: 8px; }
+.opp-status select {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 8px; color: var(--text);
+  font-size: 12px; width: 100%; min-height: 44px;
+}
+.opp-field { margin-bottom: 6px; }
+.opp-field-label {
+  font-size: 10px; color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 2px;
+}
+.opp-field-value {
+  font-size: 12px; color: var(--text2); background: var(--input-bg);
+  border-radius: 6px; padding: 6px 8px; min-height: 28px; cursor: text;
+}
+.opp-field-value:empty::before { content: attr(data-placeholder); color: var(--text3); }
+.opp-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px;
+}
+.opp-date { font-size: 10px; color: var(--text3); }
+.opp-delete {
+  font-size: 11px; color: var(--red); background: none; border: none;
+  cursor: pointer; padding: 4px 8px; min-height: 44px;
+}
+
+/* Suggestions */
+.suggestion {
+  background: rgba(108,140,255,0.08); border: 1px dashed var(--accent);
+  border-radius: 10px; padding: 12px; margin-bottom: 8px;
+}
+.sug-source { font-size: 10px; color: var(--accent); margin-bottom: 4px; }
+.sug-content { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+.sug-actions { display: flex; gap: 6px; }
+.sug-accept {
+  padding: 6px 14px; border-radius: 8px; background: var(--green);
+  color: #fff; border: none; font-size: 12px; cursor: pointer; min-height: 44px;
+}
+.sug-dismiss {
+  padding: 6px 14px; border-radius: 8px; background: none;
+  color: var(--text3); border: 1px solid var(--border); font-size: 12px;
+  cursor: pointer; min-height: 44px;
+}
+/* Suggestion edit mode */
+.sug-edit-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sug-edit-form input, .sug-edit-form select {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 8px; color: var(--text);
+  font-size: 12px; font-family: var(--font); min-height: 40px;
+}
+.sug-edit-form .sug-edit-row { display: flex; gap: 6px; }
+.sug-edit-form .sug-edit-row > * { flex: 1; }
+.sug-confirm {
+  padding: 6px 14px; border-radius: 8px; background: var(--accent);
+  color: #fff; border: none; font-size: 12px; cursor: pointer; min-height: 44px;
+}
+.sug-cancel {
+  padding: 6px 14px; border-radius: 8px; background: none;
+  color: var(--text3); border: 1px solid var(--border); font-size: 12px;
+  cursor: pointer; min-height: 44px;
+}
+
+/* Emails */
+.email {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.email:last-child { border-bottom: none; }
+.email-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px;
+}
+.email-dot.high { background: var(--red); }
+.email-dot.medium { background: var(--orange); }
+.email-dot.low { background: var(--blue); }
+.email-info { flex: 1; min-width: 0; }
+.email-sender { font-size: 13px; font-weight: 500; }
+.email-subject { font-size: 12px; color: var(--text2); }
+.email-action { font-size: 11px; color: var(--orange); margin-top: 2px; }
+.email-toggle {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+  background: none; color: var(--text2); cursor: pointer; font-size: 14px;
+  flex-shrink: 0; min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+.email-toggle.read { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--card); color: var(--text); padding: 10px 20px;
+  border-radius: 20px; font-size: 13px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+}
+.toast.show { opacity: 1; }
+
+/* Pipeline filter bar */
+.pipeline-filters { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+
+/* Pipeline Funnel Chart — Horizontal */
+.funnel-chart { margin-bottom: 16px; }
+.funnel-chart-title {
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.funnel-strip {
+  display: flex; align-items: stretch; gap: 0; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+  padding-bottom: 4px;
+}
+.funnel-seg {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; flex: 1 1 0; min-width: 72px;
+  position: relative; padding: 6px 4px; text-align: center;
+  transition: opacity 0.3s ease;
+}
+.funnel-seg-shape {
+  width: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 6px 2px; border-radius: 2px;
+  transition: height 0.4s ease, background 0.3s ease, clip-path 0.4s ease;
+}
+.funnel-seg-name {
+  font-size: 10px; font-weight: 600; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  line-height: 1.2; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 100%;
+}
+.funnel-seg-count {
+  font-size: 16px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  line-height: 1.2;
+}
+.funnel-seg.ghost .funnel-seg-shape { opacity: 0.25; }
+.funnel-seg.ghost .funnel-seg-count { opacity: 0.5; }
+
+/* Closed Lost — separate row */
+.funnel-lost-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px; padding: 6px 10px;
+  border: 1px dashed var(--border); border-radius: 8px;
+  opacity: 0.75;
+}
+.funnel-lost-bar {
+  height: 28px; border-radius: 4px; display: flex;
+  align-items: center; justify-content: center;
+  min-width: 32px; transition: width 0.4s ease;
+}
+.funnel-lost-label { font-size: 11px; color: var(--text2); white-space: nowrap; }
+.funnel-lost-count {
+  font-size: 12px; font-weight: 700; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+@media (max-width: 767px) {
+  .funnel-seg { min-width: 62px; }
+  .funnel-seg-name { font-size: 9px; }
+  .funnel-seg-count { font-size: 13px; }
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .header h1 { font-size: 15px; }
+  .pipeline-kpis { flex-wrap: wrap; }
+  .pipeline-kpi { min-width: 45%; }
+  .email-subject { white-space: normal; }
+  .pipeline-filters { gap: 4px; }
+  .pipeline-filters .filter-btn { font-size: 11px; padding: 4px 8px; }
+  .filters .filter-btn { font-size: 11px; padding: 4px 8px; }
+  .task-meta { margin-left: 36px; }
+  .task-notes { margin-left: 36px; }
+  .task-actions { margin-left: 36px; }
+  .add-row { flex-direction: column; }
+  .sug-edit-form .sug-edit-row { flex-direction: column; }
+}
+
+/* ===== PASSWORD GATE ===== */
+#auth-gate { position:fixed;top:0;left:0;width:100%;height:100%;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:10000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+#auth-gate.hidden { display:none; }
+.auth-box { background:#1a1d27;border:1px solid #2a2d3e;border-radius:16px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+.auth-box h2 { color:#e4e6f0;font-size:20px;margin-bottom:6px;font-weight:600; }
+.auth-box .auth-sub { color:#8b8fa7;font-size:13px;margin-bottom:24px; }
+.auth-box input[type=password] { width:100%;padding:12px 14px;border-radius:10px;border:1px solid #2a2d3e;background:#252836;color:#e4e6f0;font-size:14px;outline:none;margin-bottom:12px;font-family:inherit; }
+.auth-box input[type=password]:focus { border-color:#6c8cff; }
+.auth-box .auth-btn { width:100%;padding:12px;border-radius:10px;border:none;background:#6c8cff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s; }
+.auth-box .auth-btn:hover { background:#5a7ae6; }
+.auth-error { color:#ef5b5b;font-size:12px;margin-top:8px;min-height:18px; }
+#dashboard-content { display:none; }
+#dashboard-content.visible { display:block; }
+</style>
+</head>
+<body>
+<div id="auth-gate">
+<div class="auth-box">
+<h2>Command Center</h2>
+<p class="auth-sub">Enter password to continue</p>
+<input type="password" id="auth-password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')checkAuth()">
+<button class="auth-btn" onclick="checkAuth()">Enter</button>
+<div class="auth-error" id="auth-error"></div>
+</div>
+</div>
+<div id="dashboard-content">
+
+<div class="dash">
+  <div class="header">
+    <div><h1>Daily Command Center</h1><div id="date-badge" style="font-size:12px;opacity:0.7"></div></div>
+    <div class="header-right">
+      <span class="sync-pill" id="sync-status">Loading...</span>
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">&#9790;</button>
+    </div>
+  </div>
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="card" id="card-meetings">
+    <div class="card-title">
+      <span>Today's Meetings <span id="meetings-source" style="font-size:11px;font-weight:400;margin-left:6px;padding:2px 8px;border-radius:8px;background:var(--input-bg);color:var(--text3)"></span></span>
+      <span class="collapse-toggle" onclick="toggleCollapse('meetings')" id="toggle-meetings">&#9660;</span>
+    </div>
+    <div class="collapsible-content" id="content-meetings">
+      <div id="meetings-allday"></div>
+      <div id="meetings-list"></div>
+    </div>
+  </div>
+
+  <div class="card" id="card-tasks">
+    <div class="card-title">
+      <span>Action Items</span>
+      <span class="collapse-toggle" onclick="toggleCollapse('tasks')" id="toggle-tasks">&#9660;</span>
+    </div>
+    <div class="collapsible-content" id="content-tasks">
+      <div class="filters" id="task-filters"></div>
+      <div id="tasks-list"></div>
+      <div class="add-form">
+        <input id="new-desc" placeholder="New task...">
+        <div class="add-row">
+          <select id="new-priority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select>
+          <input id="new-due" type="date">
+        </div>
+        <button class="btn-add" onclick="addTask()">Add Task</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-pipeline">
+    <div class="card-title">
+      <span>Pipeline</span>
+      <span class="collapse-toggle" onclick="toggleCollapse('pipeline')" id="toggle-pipeline">&#9660;</span>
+    </div>
+    <div class="collapsible-content" id="content-pipeline">
+      <div class="pipeline-kpis" id="pipeline-kpis"></div>
+      <div id="pipeline-funnel" class="funnel-chart"></div>
+      <div class="pipeline-filters" id="pipeline-filters"></div>
+      <div id="pipeline-list"></div>
+      <div class="add-form">
+        <input id="new-opp-name" placeholder="Account / opportunity name...">
+        <div class="add-row">
+          <select id="new-opp-status">
+            <option value="to-contact">To Contact</option><option value="in-discussion">In Discussion</option>
+            <option value="testing">Testing</option><option value="quotation-delivered">Quotation Delivered</option>
+            <option value="negotiation">Negotiation</option><option value="contract">Contract</option>
+            <option value="closed-won">Closed Won</option><option value="closed-lost">Closed Lost</option>
+          </select>
+          <input id="new-opp-value" type="number" placeholder="Value (&euro;)">
+        </div>
+        <button class="btn-add" onclick="addOpportunity()">Add Opportunity</button>
+      </div>
+      <div style="margin-top:16px">
+        <div class="card-title" style="font-size:13px;color:var(--accent)">Suggestions from Plaud</div>
+        <div id="suggestions-list"><div style="font-size:12px;color:var(--text3);padding:8px 0;">No suggestions yet &mdash; they'll appear after your morning briefing.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-emails">
+    <div class="card-title">
+      <span>Email Priorities</span>
+      <span class="collapse-toggle" onclick="toggleCollapse('emails')" id="toggle-emails">&#9660;</span>
+    </div>
+    <div class="collapsible-content" id="content-emails">
+      <div class="filters" id="email-filters"></div>
+      <div id="emails-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbzDCDFtKocA2CWKSpRvucXqqH2V1d33DxklFVH8qlMML0bne6xEIteG7n73oeXexQzA/exec';
+const STORE_KEY = 'chul_dashboard_v3';
+const COLLAPSE_KEY = 'chul_dashboard_collapse';
+
+const STATUS_LABELS = {
+  'to-contact':'To Contact','in-discussion':'In Discussion','testing':'Testing',
+  'quotation-delivered':'Quotation Delivered','negotiation':'Negotiation',
+  'contract':'Contract','closed-won':'Closed Won','closed-lost':'Closed Lost'
+};
+const STATUS_COLORS = {
+  'to-contact':'var(--text3)','in-discussion':'var(--blue)','testing':'var(--purple)',
+  'quotation-delivered':'var(--orange)','negotiation':'var(--yellow)',
+  'contract':'var(--accent)','closed-won':'var(--green)','closed-lost':'var(--red)'
+};
+
+const INITIAL = {
+  date: '2026-03-25', lastUpdated: new Date().toISOString(),
+  meetings: [
+    {id:'m1',time:'08:00',title:'Pilates',type:'personal',format:'In-person',notes:''},
+    {id:'m2',time:'10:30',title:'VN MCN Data',type:'work',format:'Recurring',notes:''},
+    {id:'m3',time:'11:00',title:'Thao x Chul',type:'work',format:'Teams',notes:''},
+    {id:'m4',time:'15:00',title:'WAN IFRA Manila \u2014 Book travel',type:'reminder',format:'Reminder',notes:''},
+    {id:'m5',time:'17:30',title:'Milestone x Dailymotion Pro',type:'work',format:'Teams',notes:'New prospect'}
+  ],
+  tasks: [
+    {id:'t1',description:'Book WAN IFRA Manila flight & hotel',source:'Calendar',dueDate:'2026-03-25',priority:'high',status:'todo',notes:''},
+    {id:'t2',description:'Submit Revolut tax residency',source:'Email',dueDate:'2026-04-07',priority:'medium',status:'todo',notes:''},
+    {id:'t3',description:'Read Cyril Corbon urgent email',source:'Outlook',dueDate:'2026-03-25',priority:'high',status:'todo',notes:''},
+    {id:'t4',description:'Comment on Jira LEG-3233',source:'Jira',dueDate:'2026-03-25',priority:'medium',status:'todo',notes:''},
+    {id:'t5',description:'Prep Milestone call',source:'Briefing',dueDate:'2026-03-25',priority:'high',status:'todo',notes:''}
+  ],
+  emails: [
+    {id:'e1',sender:'Revolut',subject:'Submit your tax residency \u2014 required by law (CRS/FATCA)',action:'Open app \u2192 Account \u2192 Personal details \u2192 Tax residences. Deadline: April 7 or account will be restricted.',status:'unread',priority:'medium'},
+    {id:'e2',sender:'Cyril Corbon',subject:'Closed outage \u2014 DM Pro sign-up service restored',action:'Read and confirm. Konstantin also flagged this \u2014 the outage affected new DM Pro sign-ups.',status:'unread',priority:'high'},
+    {id:'e3',sender:'Arsalan Basharat',subject:'RF1 \u2014 DM Pro contract file for review',action:'Review the contract terms and respond. May need legal review via Jira.',status:'unread',priority:'medium'},
+    {id:'e4',sender:'Somya Vats',subject:'New Units \u2014 India BD deal updates (2 attachments)',action:'Review new unit details before or after the Milestone call. Check pricing and terms.',status:'unread',priority:'low'},
+    {id:'e5',sender:'Somya Vats',subject:'Ads.txt worldwide issue (1 attachment)',action:'Check if any action needed on your side for the ads.txt configuration.',status:'unread',priority:'low'},
+    {id:'e6',sender:'Jira Automation',subject:'LEG-3233 \u2014 G-XChange Mutual NDA stuck under Supplier/Partner Review for 7+ days',action:'Comment on the ticket: confirm if the supplier still wants to proceed, or close it out.',status:'unread',priority:'high'}
+  ],
+  pipeline: [],
+  pipelineSuggestions: []
+};
+
+// State
+let saved = null;
+try { const s = localStorage.getItem(STORE_KEY); if (s) saved = JSON.parse(s); } catch(e) {}
+
+const state = {
+  meetings: INITIAL.meetings,
+  allDayEvents: [],
+  tasks: saved?.tasks || INITIAL.tasks.map(t => ({...t})),
+  emails: saved?.emails || INITIAL.emails.map(e => ({...e})),
+  pipeline: saved?.pipeline || INITIAL.pipeline.map(p => ({...p})),
+  pipelineSuggestions: saved?.pipelineSuggestions || INITIAL.pipelineSuggestions.map(s => ({...s})),
+  taskFilter: 'all',
+  emailFilter: 'unread',
+  pipelineFilter: 'all',
+  editingSuggestion: null
+};
+
+if (saved?.theme) document.documentElement.setAttribute('data-theme', saved.theme);
+
+// Collapse state
+let collapseState = {};
+try { const c = localStorage.getItem(COLLAPSE_KEY); if (c) collapseState = JSON.parse(c); } catch(e) {}
+
+function toggleCollapse(section) {
+  collapseState[section] = !collapseState[section];
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapseState)); } catch(e) {}
+  applyCollapse(section);
+}
+
+function applyCollapse(section) {
+  const content = document.getElementById('content-' + section);
+  const toggle = document.getElementById('toggle-' + section);
+  if (!content || !toggle) return;
+  if (collapseState[section]) {
+    content.classList.add('collapsed');
+    toggle.innerHTML = '&#9654;';
+  } else {
+    content.classList.remove('collapsed');
+    content.style.maxHeight = content.scrollHeight + 5000 + 'px';
+    toggle.innerHTML = '&#9660;';
+  }
+}
+
+function applyAllCollapse() {
+  ['meetings','tasks','pipeline','emails'].forEach(applyCollapse);
+}
+
+// Save & Sync
+let _syncTimer = null;
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      tasks: state.tasks, emails: state.emails, pipeline: state.pipeline,
+      pipelineSuggestions: state.pipelineSuggestions,
+      theme: document.documentElement.getAttribute('data-theme')
+    }));
+  } catch(e) {}
+  if (_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(syncRemote, 2000);
+  updateSync('Saving...','');
+}
+
+function syncRemote() {
+  if (!SYNC_URL) { updateSync('Local only',''); return; }
+  updateSync('Syncing...','');
+  fetch(SYNC_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      lastModified: new Date().toISOString(),
+      tasks: state.tasks, emails: state.emails, meetings: state.meetings,
+      pipeline: state.pipeline, pipelineSuggestions: state.pipelineSuggestions
+    }),
+    mode:'no-cors'
+  })
+  .then(() => updateSync('Synced','synced'))
+  .catch(() => updateSync('Offline',''));
+}
+
+function updateSync(text, cls) {
+  const el = document.getElementById('sync-status');
+  el.textContent = text;
+  el.className = 'sync-pill' + (cls ? ' ' + cls : '');
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// Theme
+function toggleTheme() {
+  const h = document.documentElement;
+  const n = h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  h.setAttribute('data-theme', n);
+  document.getElementById('theme-btn').innerHTML = n === 'dark' ? '&#9790;' : '&#9728;';
+  save();
+}
+
+// KPIs
+function renderKPIs() {
+  const active = state.tasks.filter(t => t.status !== 'archived');
+  const done = active.filter(t => t.status === 'done').length;
+  const pct = active.length ? Math.round(done / active.length * 100) : 0;
+  const high = active.filter(t => t.priority === 'high' && t.status !== 'done').length;
+
+  let completedColor = 'var(--green)';
+  if (pct < 50) completedColor = 'var(--red)';
+  else if (pct <= 80) completedColor = 'var(--orange)';
+
+  const highPulse = high > 0 ? ' pulse-red' : '';
+
+  document.getElementById('kpi-row').innerHTML = [
+    {l:'Tasks', v:active.length, c:'var(--accent)', extra:''},
+    {l:'Completed', v:pct+'%', c:completedColor, extra:''},
+    {l:'High Priority', v:high, c:high?'var(--red)':'var(--green)', extra:highPulse},
+    {l:'Meetings', v:state.meetings.length, c:'var(--purple)', extra:''}
+  ].map(k => `<div class="kpi${k.extra}"><div class="kpi-val" style="color:${k.c}">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
+}
+
+// Meetings
+let meetingsSource = 'initial';
+
+function renderMeetings() {
+  // Render all-day events if any
+  const alldayEl = document.getElementById('meetings-allday');
+  if (state.allDayEvents && state.allDayEvents.length > 0) {
+    alldayEl.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px 8px">' +
+      state.allDayEvents.map(e =>
+        `<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:var(--input-bg);color:var(--text2)">${e.title}</span>`
+      ).join('') + '</div>';
+  } else {
+    alldayEl.innerHTML = '';
+  }
+
+  // Render timed meetings
+  document.getElementById('meetings-list').innerHTML = state.meetings.map(m =>
+    `<div class="meeting type-${m.type}"><span class="meeting-time">${m.time}</span><span class="meeting-title">${m.title}</span><span class="meeting-badge badge-${m.type}">${m.type}</span></div>`
+  ).join('') || '<div style="color:var(--text3);font-size:13px;padding:8px">No meetings today</div>';
+
+  // Update source indicator
+  const srcEl = document.getElementById('meetings-source');
+  if (meetingsSource === 'live') {
+    srcEl.textContent = '\u2022 Live from calendar';
+    srcEl.style.color = 'var(--green)';
+  } else if (meetingsSource === 'sync') {
+    srcEl.textContent = '\u2022 From last sync';
+    srcEl.style.color = 'var(--orange)';
+  } else if (meetingsSource === 'stale') {
+    srcEl.textContent = '\u26A0 May be outdated';
+    srcEl.style.color = 'var(--red)';
+  } else {
+    srcEl.textContent = '';
+  }
+}
+
+function fetchCalendarLive() {
+  if (!SYNC_URL) return Promise.resolve(false);
+  return fetch(SYNC_URL + '?action=calendar')
+    .then(r => r.json())
+    .then(data => {
+      if (data.source === 'google-calendar-live' && data.meetings) {
+        state.meetings = data.meetings;
+        state.allDayEvents = data.allDayEvents || [];
+        meetingsSource = 'live';
+        renderMeetings();
+        renderKPIs();
+        return true;
+      }
+      return false;
+    })
+    .catch(() => false);
+}
+
+// Tasks
+function renderFilters() {
+  const fs = [{k:'all',l:'All'},{k:'todo',l:'To Do'},{k:'in-progress',l:'In Progress'},{k:'done',l:'Done'},{k:'high',l:'High'},{k:'archived',l:'Archived'}];
+  document.getElementById('task-filters').innerHTML = fs.map(f =>
+    `<button class="filter-btn ${state.taskFilter===f.k?'active':''}" onclick="setFilter('${f.k}')">${f.l}</button>`
+  ).join('');
+}
+
+function setFilter(k) { state.taskFilter = k; renderFilters(); renderTasks(); }
+
+function renderTasks() {
+  let tasks = state.tasks;
+  if (state.taskFilter === 'all') tasks = tasks.filter(t => t.status !== 'archived');
+  else if (state.taskFilter === 'high') tasks = tasks.filter(t => t.priority === 'high' && t.status !== 'archived' && t.status !== 'done');
+  else tasks = tasks.filter(t => t.status === state.taskFilter);
+
+  // Sort: in-progress first, then todo, then done
+  const statusOrder = {'in-progress':0, 'todo':1, 'done':2, 'archived':3};
+  tasks = [...tasks].sort((a,b) => (statusOrder[a.status]??1) - (statusOrder[b.status]??1));
+
+  if (!tasks.length) {
+    document.getElementById('tasks-list').innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">No tasks here</div>';
+    return;
+  }
+
+  document.getElementById('tasks-list').innerHTML = tasks.map(t => {
+    const isDone = t.status === 'done';
+    const isProgress = t.status === 'in-progress';
+    const checkCls = isDone ? 'done' : isProgress ? 'in-progress' : '';
+    const checkIcon = isDone ? '\u2713' : isProgress ? '\u25B6' : '';
+    const pillCls = t.priority === 'high' ? 'pill-high' : t.priority === 'medium' ? 'pill-medium' : 'pill-low';
+    const pillLabel = t.priority === 'high' ? 'HIGH' : t.priority === 'medium' ? 'MED' : 'LOW';
+    return `<div class="task priority-${t.priority} status-${t.status}">
+      <div class="task-header">
+        <button class="task-check ${checkCls}" onclick="toggleTask('${t.id}')">${checkIcon}</button>
+        <span class="task-desc ${isDone?'done-text':''}" contenteditable="true" onblur="editTaskDesc('${t.id}',this.textContent)">${t.description}</span>
+        <span class="priority-pill ${pillCls}">${pillLabel}</span>
+      </div>
+      <div class="task-meta">${t.source||''} ${t.dueDate?' \u00B7 Due: '+fmtDue(t.dueDate):''}</div>
+      <div class="task-notes" contenteditable="true" data-id="${t.id}" onblur="editTaskNotes('${t.id}',this.textContent)">${t.notes||''}</div>
+      <div class="task-actions">
+        <button class="status-btn ${t.status==='todo'?'active-todo':''}" onclick="setTaskStatus('${t.id}','todo')">To Do</button>
+        <button class="status-btn ${t.status==='in-progress'?'active-progress':''}" onclick="setTaskStatus('${t.id}','in-progress')">In Progress</button>
+        <button class="status-btn ${t.status==='done'?'active-done':''}" onclick="setTaskStatus('${t.id}','done')">Done</button>
+        <button class="archive-btn" onclick="setTaskStatus('${t.id}','archived')">Archive</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const cycle = {todo:'in-progress','in-progress':'done',done:'todo',archived:'todo'};
+  setTaskStatus(id, cycle[t.status] || 'todo');
+}
+
+function setTaskStatus(id, s) {
+  const t = state.tasks.find(x => x.id === id);
+  if (t) { t.status = s; save(); renderTasks(); renderKPIs(); toast(s==='done'?'Done!':s==='archived'?'Archived':s); }
+}
+
+function editTaskDesc(id, val) {
+  const t = state.tasks.find(x => x.id === id);
+  if (t && val.trim()) { t.description = val.trim(); save(); }
+}
+
+function editTaskNotes(id, val) {
+  const t = state.tasks.find(x => x.id === id);
+  if (t) { t.notes = val.trim(); save(); }
+}
+
+function fmtDue(d) {
+  const dt = new Date(d+'T00:00:00');
+  const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((dt - today) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff < 0) return Math.abs(diff) + 'd overdue';
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function addTask() {
+  const desc = document.getElementById('new-desc').value.trim();
+  if (!desc) { toast('Enter a description'); return; }
+  state.tasks.unshift({
+    id:'t_'+Date.now(), description:desc, source:'Manual',
+    dueDate: document.getElementById('new-due').value || '',
+    priority: document.getElementById('new-priority').value,
+    status:'todo', notes:''
+  });
+  document.getElementById('new-desc').value = '';
+  save(); renderTasks(); renderKPIs(); toast('Task added!');
+}
+
+// Pipeline
+function renderPipelineFilters() {
+  const stages = [{k:'all',l:'All'},...Object.entries(STATUS_LABELS).map(([k,v]) => ({k,l:v}))];
+  document.getElementById('pipeline-filters').innerHTML = stages.map(f =>
+    `<button class="filter-btn ${state.pipelineFilter===f.k?'active':''}" onclick="setPipelineFilter('${f.k}')">${f.l}</button>`
+  ).join('');
+}
+
+function setPipelineFilter(k) { state.pipelineFilter = k; renderPipelineFilters(); renderPipelineList(); }
+
+function renderPipelineKPIs() {
+  const active = state.pipeline.filter(p => p.status !== 'closed-lost');
+  const total = active.reduce((s,p) => s + (p.value||0), 0);
+  const neg = state.pipeline.filter(p => p.status === 'negotiation' || p.status === 'quotation-delivered').length;
+  document.getElementById('pipeline-kpis').innerHTML = [
+    {l:'Pipeline Value',v:'\u20AC'+total.toLocaleString()},
+    {l:'Active Deals',v:active.length},
+    {l:'In Negotiation+',v:neg}
+  ].map(k => `<div class="pipeline-kpi"><div class="val">${k.v}</div><div class="lbl">${k.l}</div></div>`).join('');
+}
+
+function renderPipelineList() {
+  let opps = state.pipeline;
+  if (state.pipelineFilter !== 'all') {
+    opps = opps.filter(p => p.status === state.pipelineFilter);
+  }
+
+  if (!opps.length) {
+    document.getElementById('pipeline-list').innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">' +
+      (state.pipeline.length ? 'No opportunities at this stage.' : 'No opportunities yet. Add one below.') + '</div>';
+  } else {
+    document.getElementById('pipeline-list').innerHTML = opps.map(p => `
+      <div class="opp">
+        <div class="opp-header">
+          <span class="opp-name" contenteditable="true" onblur="editOpp('${p.id}','account',this.textContent)">${p.account}</span>
+          <span class="opp-value" contenteditable="true" onblur="editOppVal('${p.id}',this.textContent)">\u20AC${(p.value||0).toLocaleString()}</span>
+        </div>
+        <div class="opp-status">
+          <select onchange="editOpp('${p.id}','status',this.value)" style="color:${STATUS_COLORS[p.status]||'var(--text)'}">
+            ${Object.entries(STATUS_LABELS).map(([k,v]) => `<option value="${k}" ${p.status===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="opp-field"><div class="opp-field-label">Notes</div><div class="opp-field-value" contenteditable="true" data-placeholder="Add notes..." onblur="editOpp('${p.id}','notes',this.textContent)">${p.notes||''}</div></div>
+        <div class="opp-field"><div class="opp-field-label">Next Steps</div><div class="opp-field-value" contenteditable="true" data-placeholder="Define next steps..." onblur="editOpp('${p.id}','nextSteps',this.textContent)">${p.nextSteps||''}</div></div>
+        <div class="opp-footer">
+          <span class="opp-date">Last activity: ${p.lastActivity||'\u2014'}</span>
+          <button class="opp-delete" onclick="deleteOpp('${p.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function renderFunnel() {
+  const funnelStages = [
+    'to-contact','in-discussion','testing','quotation-delivered',
+    'negotiation','contract','closed-won'
+  ];
+  const lostKey = 'closed-lost';
+  const shortLabels = {
+    'to-contact':'Contact','in-discussion':'Discussion','testing':'Testing',
+    'quotation-delivered':'Quotation','negotiation':'Negotiation',
+    'contract':'Contract','closed-won':'Won','closed-lost':'Lost'
+  };
+
+  // Count deals per stage
+  const counts = {};
+  Object.keys(STATUS_LABELS).forEach(k => counts[k] = 0);
+  state.pipeline.forEach(p => { if (counts[p.status] !== undefined) counts[p.status]++; });
+
+  const total = funnelStages.length;
+
+  let html = '<div class="funnel-chart-title">Deal Funnel</div>';
+  html += '<div class="funnel-strip">';
+
+  funnelStages.forEach((key, i) => {
+    const count = counts[key];
+    const color = STATUS_COLORS[key] || 'var(--text3)';
+    const ghost = count === 0 ? ' ghost' : '';
+
+    // Height tapers from left (tallest) to right (shortest)
+    const maxH = 72;
+    const minH = 40;
+    const h = Math.round(maxH - (i / (total - 1)) * (maxH - minH));
+
+    // Clip-path: trapezoid/arrow shape — left edge taller, right edge shorter
+    const topL = Math.round((maxH - h) / 2 + (i > 0 ? 2 : 0));
+    const botL = Math.round((maxH + h) / 2 - (i > 0 ? 2 : 0));
+    const nextH = (i < total - 1) ? Math.round(maxH - ((i + 1) / (total - 1)) * (maxH - minH)) : h;
+    const topR = Math.round((maxH - nextH) / 2);
+    const botR = Math.round((maxH + nextH) / 2);
+
+    // Use percentage-based clip-path for the trapezoid arrow shape
+    const clipTopL = ((topL / maxH) * 100).toFixed(1);
+    const clipBotL = ((botL / maxH) * 100).toFixed(1);
+    const clipTopR = ((topR / maxH) * 100).toFixed(1);
+    const clipBotR = ((botR / maxH) * 100).toFixed(1);
+
+    const clipPath = `polygon(0% ${clipTopL}%, 100% ${clipTopR}%, 100% ${clipBotR}%, 0% ${clipBotL}%)`;
+
+    html += `<div class="funnel-seg${ghost}">
+      <div class="funnel-seg-shape" style="height:${maxH}px;background:${color};clip-path:${clipPath}">
+        <span class="funnel-seg-name">${shortLabels[key]}</span>
+        <span class="funnel-seg-count">${count}</span>
+      </div>
+    </div>`;
+  });
+
+  html += '</div>';
+
+  // Closed Lost — separate row below
+  const lostCount = counts[lostKey];
+  const lostGhost = lostCount === 0 ? ' ghost' : '';
+  html += `<div class="funnel-lost-row${lostGhost}">
+    <span class="funnel-lost-label">${shortLabels[lostKey]}</span>
+    <div class="funnel-lost-bar" style="width:${Math.max(40, lostCount * 40)}px;background:${STATUS_COLORS[lostKey]}">
+      <span class="funnel-lost-count">${lostCount}</span>
+    </div>
+  </div>`;
+
+  document.getElementById('pipeline-funnel').innerHTML = html;
+}
+
+function renderPipeline() {
+  renderPipelineKPIs();
+  renderFunnel();
+  renderPipelineFilters();
+  renderPipelineList();
+  renderSuggestions();
+}
+
+function renderSuggestions() {
+  if (state.pipelineSuggestions.length) {
+    document.getElementById('suggestions-list').innerHTML = state.pipelineSuggestions.map(s => {
+      if (state.editingSuggestion === s.id) {
+        return `<div class="suggestion">
+          <div class="sug-source">From: ${s.source}</div>
+          <div class="sug-edit-form">
+            <input id="sug-edit-account-${s.id}" value="${escAttr(s.account||'')}" placeholder="Account name">
+            <div class="sug-edit-row">
+              <select id="sug-edit-status-${s.id}">
+                ${Object.entries(STATUS_LABELS).map(([k,v]) => `<option value="${k}" ${(s.suggestedStatus||'in-discussion')===k?'selected':''}>${v}</option>`).join('')}
+              </select>
+              <input id="sug-edit-value-${s.id}" type="number" value="${s.suggestedValue||0}" placeholder="Value (\u20AC)">
+            </div>
+            <input id="sug-edit-notes-${s.id}" value="${escAttr(s.suggestedNotes||'')}" placeholder="Notes">
+            <input id="sug-edit-next-${s.id}" value="${escAttr(s.suggestedNextSteps||'')}" placeholder="Next steps">
+            <div class="sug-actions">
+              <button class="sug-confirm" onclick="confirmSuggestion('${s.id}')">Confirm</button>
+              <button class="sug-cancel" onclick="cancelEditSuggestion()">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+      }
+      return `<div class="suggestion">
+        <div class="sug-source">From: ${s.source}</div>
+        <div class="sug-content"><strong>${s.account}</strong> \u2014 ${s.suggestedNotes||'No details'}</div>
+        <div class="sug-actions">
+          <button class="sug-accept" onclick="startEditSuggestion('${s.id}')">Accept</button>
+          <button class="sug-dismiss" onclick="dismissSuggestion('${s.id}')">Dismiss</button>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('suggestions-list').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">No suggestions yet \u2014 they\'ll appear after your morning briefing.</div>';
+  }
+}
+
+function escAttr(str) { return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+function startEditSuggestion(id) {
+  state.editingSuggestion = id;
+  renderSuggestions();
+}
+
+function cancelEditSuggestion() {
+  state.editingSuggestion = null;
+  renderSuggestions();
+}
+
+function confirmSuggestion(id) {
+  const account = document.getElementById('sug-edit-account-' + id)?.value.trim() || 'Unnamed';
+  const status = document.getElementById('sug-edit-status-' + id)?.value || 'in-discussion';
+  const value = parseInt(document.getElementById('sug-edit-value-' + id)?.value) || 0;
+  const notes = document.getElementById('sug-edit-notes-' + id)?.value.trim() || '';
+  const nextSteps = document.getElementById('sug-edit-next-' + id)?.value.trim() || '';
+  const today = new Date().toISOString().split('T')[0];
+
+  state.pipeline.push({
+    id: 'p_' + Date.now(), account, status, value,
+    notes, nextSteps, lastActivity: today, createdAt: today
+  });
+  state.pipelineSuggestions = state.pipelineSuggestions.filter(x => x.id !== id);
+  state.editingSuggestion = null;
+  save(); renderPipeline(); toast('Added to pipeline');
+}
+
+function editOpp(id, field, val) {
+  const p = state.pipeline.find(x => x.id === id);
+  if (p) {
+    p[field] = val.trim();
+    p.lastActivity = new Date().toISOString().split('T')[0];
+    save();
+    if (field === 'status') renderPipeline();
+    renderPipelineKPIs();
+  }
+}
+
+function editOppVal(id, val) {
+  const p = state.pipeline.find(x => x.id === id);
+  if (p) {
+    p.value = parseInt(val.replace(/[^0-9]/g,'')) || 0;
+    p.lastActivity = new Date().toISOString().split('T')[0];
+    save(); renderPipelineKPIs();
+  }
+}
+
+function deleteOpp(id) {
+  state.pipeline = state.pipeline.filter(x => x.id !== id);
+  save(); renderPipeline(); toast('Deleted');
+}
+
+function addOpportunity() {
+  const name = document.getElementById('new-opp-name').value.trim();
+  if (!name) { toast('Enter account name'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  state.pipeline.push({
+    id: 'p_' + Date.now(), account: name,
+    status: document.getElementById('new-opp-status').value,
+    value: parseInt(document.getElementById('new-opp-value').value) || 0,
+    notes: '', nextSteps: '', lastActivity: today, createdAt: today
+  });
+  document.getElementById('new-opp-name').value = '';
+  document.getElementById('new-opp-value').value = '';
+  save(); renderPipeline(); toast('Opportunity added!');
+}
+
+function dismissSuggestion(id) {
+  state.pipelineSuggestions = state.pipelineSuggestions.filter(x => x.id !== id);
+  state.editingSuggestion = null;
+  save(); renderPipeline(); toast('Dismissed');
+}
+
+// Emails
+function renderEmailFilters() {
+  const fs = [{k:'unread',l:'Unread'},{k:'read',l:'Read'},{k:'all',l:'All'}];
+  document.getElementById('email-filters').innerHTML = fs.map(f =>
+    `<button class="filter-btn ${state.emailFilter===f.k?'active':''}" onclick="setEmailFilter('${f.k}')">${f.l}</button>`
+  ).join('');
+}
+
+function setEmailFilter(k) { state.emailFilter = k; renderEmailFilters(); renderEmails(); }
+
+function renderEmails() {
+  let emails = state.emails;
+  if (state.emailFilter === 'unread') emails = emails.filter(e => e.status !== 'read');
+  else if (state.emailFilter === 'read') emails = emails.filter(e => e.status === 'read');
+
+  if (!emails.length) {
+    document.getElementById('emails-list').innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">No emails here</div>';
+    return;
+  }
+
+  document.getElementById('emails-list').innerHTML = emails.map(e => `
+    <div class="email">
+      <span class="email-dot ${e.priority}"></span>
+      <div class="email-info">
+        <div class="email-sender">${e.sender}</div>
+        <div class="email-subject">${e.subject}</div>
+        <div class="email-action">${e.action}</div>
+      </div>
+      <button class="email-toggle ${e.status==='read'?'read':''}" onclick="toggleEmail('${e.id}')">${e.status==='read'?'\u2713':'\u25CF'}</button>
+    </div>
+  `).join('');
+}
+
+function toggleEmail(id) {
+  const e = state.emails.find(x => x.id === id);
+  if (e) { e.status = e.status === 'read' ? 'unread' : 'read'; save(); renderEmails(); }
+}
+
+// Init
+function init() {
+  const d = new Date();
+  document.getElementById('date-badge').textContent = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('theme-btn').innerHTML = document.documentElement.getAttribute('data-theme') === 'dark' ? '&#9790;' : '&#9728;';
+  document.getElementById('new-due').value = new Date().toISOString().split('T')[0];
+
+  renderKPIs(); renderMeetings(); renderFilters(); renderTasks(); renderPipeline(); renderEmailFilters(); renderEmails();
+  applyAllCollapse();
+
+  // Load remote state, then fetch live calendar
+  if (SYNC_URL) {
+    // 1) Load synced state (tasks, emails, pipeline, etc.)
+    fetch(SYNC_URL).then(r => r.json()).then(data => {
+      if (data?.tasks) {
+        state.tasks = data.tasks;
+        state.emails = data.emails || state.emails;
+        state.pipeline = data.pipeline || state.pipeline;
+        state.pipelineSuggestions = data.pipelineSuggestions || state.pipelineSuggestions;
+
+        // Check if synced meetings are from today
+        const today = new Date().toISOString().split('T')[0];
+        const syncDate = data.lastModified ? data.lastModified.split('T')[0] : '';
+        if (data.meetings && syncDate === today) {
+          state.meetings = data.meetings;
+          meetingsSource = 'sync';
+        } else if (data.meetings) {
+          // Synced meetings are from a previous day — mark stale
+          meetingsSource = 'stale';
+        }
+
+        save(); renderKPIs(); renderMeetings(); renderTasks(); renderPipeline(); renderEmailFilters(); renderEmails();
+        updateSync('Synced','synced');
+      } else { updateSync('Synced','synced'); }
+    }).catch(() => updateSync('Local',''));
+
+    // 2) Fetch live calendar data (overrides synced meetings if successful)
+    fetchCalendarLive();
+  } else { updateSync('No sync URL',''); }
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+
+</div>
+<script>
+const _H='80ade853137f9ff33c76d84c448d141714878e4b7c2f84d61b49fb50e39a66cf';
+async function hashPassword(p){const e=new TextEncoder();const d=e.encode(p);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+async function checkAuth(){const p=document.getElementById('auth-password').value;const h=await hashPassword(p);if(h===_H){sessionStorage.setItem('dcc_auth','true');showDashboard();}else{document.getElementById('auth-error').textContent='Incorrect password';document.getElementById('auth-password').value='';document.getElementById('auth-password').focus();}}
+function showDashboard(){document.getElementById('auth-gate').classList.add('hidden');document.getElementById('dashboard-content').classList.add('visible');}
+if(sessionStorage.getItem('dcc_auth')==='true'){showDashboard();}
+</script>
+</body>
+</html>
