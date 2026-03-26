@@ -393,34 +393,9 @@ body {
   .add-row { flex-direction: column; }
   .sug-edit-form .sug-edit-row { flex-direction: column; }
 }
-
-/* ===== PASSWORD GATE ===== */
-#auth-gate { position:fixed;top:0;left:0;width:100%;height:100%;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:10000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
-#auth-gate.hidden { display:none; }
-.auth-box { background:#1a1d27;border:1px solid #2a2d3e;border-radius:16px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4); }
-.auth-box h2 { color:#e4e6f0;font-size:20px;margin-bottom:6px;font-weight:600; }
-.auth-box .auth-sub { color:#8b8fa7;font-size:13px;margin-bottom:24px; }
-.auth-box input[type=password] { width:100%;padding:12px 14px;border-radius:10px;border:1px solid #2a2d3e;background:#252836;color:#e4e6f0;font-size:14px;outline:none;margin-bottom:12px;font-family:inherit; }
-.auth-box input[type=password]:focus { border-color:#6c8cff; }
-.auth-box .auth-btn { width:100%;padding:12px;border-radius:10px;border:none;background:#6c8cff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s; }
-.auth-box .auth-btn:hover { background:#5a7ae6; }
-.auth-error { color:#ef5b5b;font-size:12px;margin-top:8px;min-height:18px; }
-#dashboard-content { display:none; }
-#dashboard-content.visible { display:block; }
 </style>
 </head>
 <body>
-<div id="auth-gate">
-<div class="auth-box">
-<h2>Command Center</h2>
-<p class="auth-sub">Enter password to continue</p>
-<input type="password" id="auth-password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')checkAuth()">
-<button class="auth-btn" onclick="checkAuth()">Enter</button>
-<div class="auth-error" id="auth-error"></div>
-</div>
-</div>
-<div id="dashboard-content">
-
 <div class="dash">
   <div class="header">
     <div><h1>Daily Command Center</h1><div id="date-badge" style="font-size:12px;opacity:0.7"></div></div>
@@ -1144,15 +1119,6 @@ function init() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
-</script>
-
-</div>
-<script>
-const _H='80ade853137f9ff33c76d84c448d141714878e4b7c2f84d61b49fb50e39a66cf';
-async function hashPassword(p){const e=new TextEncoder();const d=e.encode(p);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');}
-async function checkAuth(){const p=document.getElementById('auth-password').value;const h=await hashPassword(p);if(h===_H){sessionStorage.setItem('dcc_auth','true');showDashboard();}else{document.getElementById('auth-error').textContent='Incorrect password';document.getElementById('auth-password').value='';document.getElementById('auth-password').focus();}}
-function showDashboard(){document.getElementById('auth-gate').classList.add('hidden');document.getElementById('dashboard-content').classList.add('visible');}
-if(sessionStorage.getItem('dcc_auth')==='true'){showDashboard();}
 </script>
 </body>
 </html>
