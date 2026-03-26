@@ -395,7 +395,33 @@ body {
 }
 </style>
 </head>
-<body>
+<body><div id="login-gate" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+<div style="text-align:center;padding:40px;background:#1a1d27;border-radius:16px;border:1px solid #2a2d3e;max-width:360px;width:90%;">
+<div style="font-size:32px;margin-bottom:8px;">&#128274;</div>
+<h2 style="color:#e4e6f0;font-size:18px;margin-bottom:4px;">Command Center</h2>
+<p style="color:#8b8fa7;font-size:13px;margin-bottom:20px;">Enter password to continue</p>
+<input id="pw-input" type="password" placeholder="Password" style="width:100%;padding:12px;border-radius:10px;border:1px solid #2a2d3e;background:#252836;color:#e4e6f0;font-size:14px;margin-bottom:10px;box-sizing:border-box;" onkeydown="if(event.key==='Enter')checkPw()">
+<div id="pw-error" style="color:#ef5b5b;font-size:12px;margin-bottom:10px;display:none;">Incorrect password</div>
+<button onclick="checkPw()" style="width:100%;padding:12px;border-radius:10px;border:none;background:#6c8cff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Enter</button>
+</div></div><script>
+async function checkPw(){
+var pw=document.getElementById("pw-input").value;
+var enc=new TextEncoder();var data=enc.encode(pw);
+var buf=await crypto.subtle.digest("SHA-256",data);
+var hash=Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,"0")}).join("");
+if(hash==="84eee1db21eb70c977eed14bed250ae27b5b5d5fab9fe7a15c22a28810fbd913"){
+sessionStorage.setItem("cc-auth","1");
+document.getElementById("login-gate").style.display="none";
+document.getElementById("dashboard-content").style.display="block";
+}else{document.getElementById("pw-error").style.display="block";}
+}
+if(sessionStorage.getItem("cc-auth")==="1"){
+document.addEventListener("DOMContentLoaded",function(){
+document.getElementById("login-gate").style.display="none";
+document.getElementById("dashboard-content").style.display="block";
+});
+}
+</script><div id="dashboard-content" style="display:none;">
 <div class="dash">
   <div class="header">
     <div><h1>Daily Command Center</h1><div id="date-badge" style="font-size:12px;opacity:0.7"></div></div>
@@ -1120,5 +1146,5 @@ function init() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
 </script>
-</body>
+</div></body>
 </html>
