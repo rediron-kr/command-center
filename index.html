@@ -616,14 +616,20 @@ function save() {
 function syncRemote() {
   if (!SYNC_URL) { updateSync('Local only',''); return; }
   updateSync('Syncing...','');
+  const payload = {
+    lastModified: new Date().toISOString(),
+    tasks: state.tasks, emails: state.emails,
+    pipeline: state.pipeline, pipelineSuggestions: state.pipelineSuggestions
+  };
+  // Only include meetings if we actually have data — prevents overwriting
+  // good remote meetings with an empty array when dashboard loads before briefing
+  if (state.meetings && state.meetings.length > 0) {
+    payload.meetings = state.meetings;
+  }
   fetch(SYNC_URL, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      lastModified: new Date().toISOString(),
-      tasks: state.tasks, emails: state.emails, meetings: state.meetings,
-      pipeline: state.pipeline, pipelineSuggestions: state.pipelineSuggestions
-    }),
+    body: JSON.stringify(payload),
     mode:'no-cors'
   })
   .then(() => updateSync('Synced','synced'))
