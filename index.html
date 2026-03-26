@@ -621,11 +621,8 @@ function syncRemote() {
     tasks: state.tasks, emails: state.emails,
     pipeline: state.pipeline, pipelineSuggestions: state.pipelineSuggestions
   };
-  // Only include meetings if we actually have data — prevents overwriting
-  // good remote meetings with an empty array when dashboard loads before briefing
-  if (state.meetings && state.meetings.length > 0) {
-    payload.meetings = state.meetings;
-  }
+  // NEVER push meetings from dashboard — meetings are only written by the morning briefing
+  // This prevents stale cached meetings from overwriting today's correct data
   fetch(SYNC_URL, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
