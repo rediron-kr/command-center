@@ -719,7 +719,7 @@ function fetchCalendarLive() {
   return fetch(SYNC_URL + '?action=calendar')
     .then(r => r.json())
     .then(data => {
-      if (data.source === 'google-calendar-live' && data.meetings) {
+      if (data.source === 'google-calendar-live' && data.meetings && data.meetings.length > 0) {
         state.meetings = data.meetings;
         state.allDayEvents = data.allDayEvents || [];
         meetingsSource = 'live';
@@ -727,6 +727,7 @@ function fetchCalendarLive() {
         renderKPIs();
         return true;
       }
+      // Live returned 0 meetings — keep synced state as-is
       return false;
     })
     .catch(() => false);
@@ -1118,9 +1119,9 @@ function init() {
   renderKPIs(); renderMeetings(); renderFilters(); renderTasks(); renderPipeline(); renderEmailFilters(); renderEmails();
   applyAllCollapse();
 
-  // Load remote state, then fetch live calendar
+  // Load remote state, then try live calendar
   if (SYNC_URL) {
-    // 1) Load synced state (tasks, emails, pipeline, etc.)
+    // 1) Load synced state (tasks, emails, pipeline, meetings)
     fetch(SYNC_URL).then(r => r.json()).then(data => {
       if (data?.tasks) {
         state.tasks = data.tasks;
@@ -1133,19 +1134,23 @@ function init() {
         const syncDate = data.lastModified ? data.lastModified.split('T')[0] : '';
         if (data.meetings && syncDate === today) {
           state.meetings = data.meetings;
+          state.allDayEvents = data.allDayEvents || state.allDayEvents;
           meetingsSource = 'sync';
         } else if (data.meetings) {
-          // Synced meetings are from a previous day — mark stale
           meetingsSource = 'stale';
         }
 
+        // Display synced data immediately — don't wait for live calendar
         save(); renderKPIs(); renderMeetings(); renderTasks(); renderPipeline(); renderEmailFilters(); renderEmails();
         updateSync('Synced','synced');
-      } else { updateSync('Synced','synced'); }
-    }).catch(() => updateSync('Local',''));
 
-    // 2) Fetch live calendar data (overrides synced meetings if successful)
-    fetchCalendarLive();
+        // 2) Then try live calendar — only overrides if it returns actual meetings
+        fetchCalendarLive();
+      } else {
+        updateSync('Synced','synced');
+        fetchCalendarLive();
+      }
+    }).catch(() => { updateSync('Local',''); fetchCalendarLive(); });
   } else { updateSync('No sync URL',''); }
 }
 
