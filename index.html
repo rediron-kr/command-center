@@ -427,6 +427,7 @@ document.getElementById("dashboard-content").style.display="block";
     <div><h1>Daily Command Center</h1><div id="date-badge" style="font-size:12px;opacity:0.7"></div></div>
     <div class="header-right">
       <span class="sync-pill" id="sync-status">Loading...</span>
+      <span id="autopoll-indicator" style="font-size:11px;opacity:0.55;margin-left:6px;letter-spacing:0.02em">↻ Auto-refresh: ON</span>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">&#9790;</button>
     </div>
   </div>
@@ -604,6 +605,7 @@ function save() {
   } catch(e) {}
   if (_syncTimer) clearTimeout(_syncTimer);
   _syncTimer = setTimeout(syncRemote, 2000);
+  startAutoPoll(); // reset 60s poll after manual save to avoid back-to-back syncs
   updateSync('Saving...','');
 }
 
@@ -638,6 +640,67 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 1800);
 }
+
+// Auto-polling
+let lastKnownModified = null;
+let _pollTimer = null;
+
+function startAutoPoll() {
+  stopAutoPoll();
+  _pollTimer = setInterval(runAutoPoll, 60000);
+}
+
+function stopAutoPoll() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+function runAutoPoll() {
+  if (document.visibilityState === 'hidden') return;
+  // Skip if user is actively editing a contenteditable field
+  const active = document.activeElement;
+  if (active && active.isContentEditable) return;
+  if (!SYNC_URL) return;
+
+  fetch(SYNC_URL)
+    .then(r => r.json())
+    .then(data => {
+      // Always refresh live calendar on each poll cycle
+      fetchCalendarLive();
+
+      if (!data?.tasks) return;
+      if (!data.lastModified || data.lastModified === lastKnownModified) return;
+
+      // lastModified changed — new data was pushed (e.g. morning briefing)
+      lastKnownModified = data.lastModified;
+      state.tasks = data.tasks;
+      state.emails = data.emails || state.emails;
+      state.pipeline = data.pipeline || state.pipeline;
+      state.pipelineSuggestions = data.pipelineSuggestions || state.pipelineSuggestions;
+
+      const today = new Date().toISOString().split('T')[0];
+      const syncDate = data.lastModified.split('T')[0];
+      if (data.meetings && syncDate === today) {
+        state.meetings = data.meetings;
+        state.allDayEvents = data.allDayEvents || state.allDayEvents;
+        meetingsSource = 'sync';
+      }
+
+      renderKPIs(); renderMeetings(); renderFilters(); renderTasks(); renderPipeline(); renderEmailFilters(); renderEmails();
+      toast('Dashboard updated with new data');
+      const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      updateSync('Auto-synced ' + now, 'synced');
+    })
+    .catch(() => {}); // silent — don't disrupt UX on poll failure
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    runAutoPoll(); // immediate poll on tab resume
+    startAutoPoll();
+  } else {
+    stopAutoPoll();
+  }
+});
 
 // Theme
 function toggleTheme() {
@@ -1131,6 +1194,9 @@ function init() {
           meetingsSource = 'stale';
         }
 
+        // Capture lastModified baseline so auto-poll only fires on future changes
+        if (data.lastModified) lastKnownModified = data.lastModified;
+
         // Display synced data immediately — don't wait for live calendar
         save(); renderKPIs(); renderMeetings(); renderTasks(); renderPipeline(); renderEmailFilters(); renderEmails();
         updateSync('Synced','synced');
@@ -1141,7 +1207,9 @@ function init() {
         updateSync('Synced','synced');
         fetchCalendarLive();
       }
-    }).catch(() => { updateSync('Local',''); fetchCalendarLive(); });
+
+      startAutoPoll();
+    }).catch(() => { updateSync('Local',''); fetchCalendarLive(); startAutoPoll(); });
   } else { updateSync('No sync URL',''); }
 }
 
